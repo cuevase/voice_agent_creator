@@ -1,0 +1,237 @@
+/* Credit System Styles */
+
+.credit-packages {
+  padding: 20px;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.package-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.package-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.package-card h3 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.package-card .credits {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.package-card .price {
+  font-size: 20px;
+  color: #28a745;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.purchase-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.purchase-btn:hover {
+  background: #0056b3;
+}
+
+.purchase-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.credit-balance {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.balance-info p {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.transaction-history {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.transaction-item {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.transaction-info .amount {
+  font-weight: bold;
+  color: #28a745;
+}
+
+.transaction-info .amount.negative {
+  color: #dc3545;
+}
+
+/* Credit Purchase Button Styles */
+.credit-purchase-button {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.credit-purchase-button:hover {
+  transform: translateY(-1px);
+}
+
+.credit-purchase-button .low-balance-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #dc3545;
+  color: white;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Payment Success/Cancel Pages */
+.payment-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.payment-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.payment-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 2rem;
+}
+
+.payment-icon.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.payment-icon.cancel {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .credit-purchase-button {
+    font-size: 0.875rem;
+  }
+  
+  .payment-card {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Animation for credit balance updates */
+@keyframes creditUpdate {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.credit-balance-updated {
+  animation: creditUpdate 0.3s ease-in-out;
+}
+
+/* Loading states */
+.credit-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.credit-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 

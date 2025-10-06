@@ -1,0 +1,147 @@
+Overview
+- You will stream Text→Speech in real-time over a WebSocket to your backend, which proxies Deepgram Aura‑2.
+- Endpoint (backend):  wss://<YOUR_BACKEND_HOST>/tts/deepgram/stream?company_id=<CID>&user_id=<UID>&session_id=<SID>&language=<es|en|...>
+- Transport:
+  - Client → Server: JSON text frames
+  - Server → Client: binary audio frames (WAV by default) + occasional JSON status/error text frames
+- Defaults (if you send no config): model=aura-2-estrella-es, encoding=linear16, sample_rate=16000, container=wav, language=es
+
+Messages you can send (JSON):
+1) Initial Config (optional; first message only)
+   { "model": "aura-2-estrella-es", "encoding": "linear16", "sample_rate": 16000, "container": "wav", "language": "es" }
+2) Speak (add text to the synthesis buffer)
+   { "type": "Speak", "text": "Hola, ¿cómo estás?" }
+3) Flush (force synthesis/playback for queued text)
+   { "type": "Flush" }
+4) Close (finish and close Deepgram connection)
+   { "type": "Close" }
+
+Messages you will receive:
+- Binary: audio chunks (WAV/PCM16 @ 16 kHz mono by default). Start playing them immediately upon arrival.
+- Text: JSON status or errors, e.g. {"type":"status","message":"Deepgram TTS connected"}
+
+Minimal browser usage (vanilla JS)
+---------------------------------
+const wsUrl = `wss://${location.host}/tts/deepgram/stream?company_id=${companyId}&user_id=${userId}&session_id=${sessionId}`;
+const ws = new WebSocket(wsUrl);
+ws.binaryType = 'arraybuffer';
+
+// Simple WAV streaming player using MediaSource (Chrome/Edge)
+const audio = new Audio();
+const mediaSource = new MediaSource();
+audio.src = URL.createObjectURL(mediaSource);
+let sourceBuffer;
+
+mediaSource.addEventListener('sourceopen', () => {
+  // WAV is not an official MSE codec; many apps use WebAudio instead.
+  // If MSE fails, use the WebAudio approach below.
+});
+
+audio.play().catch(() => {/* ignored; ensure user gesture before play */});
+
+// WebAudio fallback (recommended)
+const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+let playQueue = Promise.resolve();
+function playPcm16Chunk(ab) {
+  // For container=wav, browsers may require decoding; for linear PCM use decodeAudioData.
+  // We will decode WAV chunks incrementally; if decode fails, switch to a WAV-accumulator approach.
+  const blob = new Blob([ab], { type: 'audio/wav' });
+  blob.arrayBuffer().then(buf => ctx.decodeAudioData(buf).then(audioBuf => {
+    playQueue = playQueue.then(() => {
+      const src = ctx.createBufferSource();
+      src.buffer = audioBuf;
+      src.connect(ctx.destination);
+      src.start();
+      return new Promise(res => src.onended = res);
+    });
+  }).catch(() => {/* silently ignore small non-decodable chunks */}));
+}
+
+ws.onopen = () => {
+  // Optional config (or rely on defaults)
+  ws.send(JSON.stringify({ model: 'aura-2-estrella-es', encoding: 'linear16', sample_rate: 16000, container: 'wav', language: 'es' }));
+
+  // Send text, then flush to start playback
+  ws.send(JSON.stringify({ type: 'Speak', text: 'Hola, ¿cómo estás?' }));
+  ws.send(JSON.stringify({ type: 'Flush' }));
+};
+
+ws.onmessage = (ev) => {
+  if (typeof ev.data === 'string') {
+    try { console.log('TTS msg', JSON.parse(ev.data)); } catch { console.log('TTS msg', ev.data); }
+    return;
+  }
+  // Binary audio
+  playPcm16Chunk(ev.data);
+};
+
+ws.onclose = () => console.log('TTS WS closed');
+ws.onerror = (e) => console.error('TTS WS error', e);
+
+React example (hook)
+--------------------
+import { useEffect, useRef } from 'react';
+
+export function useDeepgramTTS({ companyId, userId, sessionId, lang='es' }) {
+  const wsRef = useRef(null);
+  const ctxRef = useRef(null);
+  useEffect(() => {
+    const url = `wss://${location.host}/tts/deepgram/stream?company_id=${companyId}&user_id=${userId}&session_id=${sessionId}&language=${lang}`;
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    wsRef.current = ws;
+    ctxRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+
+    let queue = Promise.resolve();
+    const playChunk = (ab) => {
+      const blob = new Blob([ab], { type: 'audio/wav' });
+      blob.arrayBuffer().then(buf => ctxRef.current.decodeAudioData(buf).then(audioBuf => {
+        queue = queue.then(() => new Promise(res => {
+          const src = ctxRef.current.createBufferSource();
+          src.buffer = audioBuf; src.connect(ctxRef.current.destination); src.start(); src.onended = res;
+        }));
+      }).catch(() => {}));
+    };
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ model: 'aura-2-estrella-es', encoding: 'linear16', sample_rate: 16000, container: 'wav', language: lang }));
+    };
+    ws.onmessage = (ev) => { if (typeof ev.data === 'string') console.log('TTS', ev.data); else playChunk(ev.data); };
+    ws.onerror = (e) => console.error('TTS error', e);
+    ws.onclose = () => console.log('TTS closed');
+    return () => { try { ws.close(); } catch {} };
+  }, [companyId, userId, sessionId, lang]);
+
+  const speak = (text) => {
+    const ws = wsRef.current; if (!ws || ws.readyState !== 1) return;
+    ws.send(JSON.stringify({ type: 'Speak', text }));
+  };
+  const flush = () => { const ws = wsRef.current; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'Flush' })); };
+  const close = () => { const ws = wsRef.current; if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'Close' })); };
+
+  return { speak, flush, close };
+}
+
+Recommended usage pattern
+- Open one WS per conversation (session).
+- For each agent reply, call speak(chunk)... speak(chunk)... then flush() to begin audio.
+- After the utterance completes, you can keep the WS open for the next turn, or send Close.
+
+Choosing voices / languages
+- Valid Aura‑2 Spanish voices include (examples): aura-2-estrella-es, aura-2-celeste-es, aura-2-nestor-es, aura-2-aquila-es, aura-2-selena-es, aura-2-javier-es, aura-2-carina-es, aura-2-diana-es, aura-2-sirio-es, aura-2-alvaro-es
+- English (examples): aura-2-thalia-en, aura-2-andromeda-en, aura-2-helena-en, ...
+- Pass your chosen model as the initial config message.
+
+Latency tips
+- Send text in chunks as the LLM streams; don’t wait for the full paragraph.
+- Call Flush after you’ve queued a sentence or two to start playback quickly.
+
+Error handling
+- You may receive JSON errors or status messages; always branch on typeof message.
+- If decodeAudioData throws for very small chunks, buffer a few chunks before decoding.
+
+Credits & telemetry
+- The backend measures total streamed bytes to estimate minutes, logs usage, and deducts credits in the background. No extra work is required client‑side.
+
+Security
+- The frontend does not need the Deepgram API key. The backend adds authorization. 

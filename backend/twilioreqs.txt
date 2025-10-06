@@ -1,0 +1,15 @@
+What businesses need: 
+If individual: 
+    - Proof of Identity with government issued id or passport
+    - Proof of local adress with: government issued id showing adress, recent utility bill, or recent government communication. 
+
+If Business: 
+    - Proof of identity with business registration:
+        - Constancia de Situacion Fiscal con RFC y razon social
+        - Acta Constitutiva inscrita en el Registro Publico de Comercio
+        - Cedula de Identificacion Fiscal del SAT
+    - Business Adress with either: Business registration showing local adress, recent utility bill, or recent government communication
+        - COnstancia de Situacion Fiscal con tu nombre, RFC y regimen
+
+
+        CONSTANCIA DE SITUACION FISCAL

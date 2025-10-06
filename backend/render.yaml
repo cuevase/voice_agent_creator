@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: agentcreator-backend
+    env: python
+    buildCommand: "pip install -r reqs.txt"
+    startCommand: "gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120"
+    plan: starter
+    region: oregon
+    branch: main
+    envVars:
+      - key: BASE_URL
+        value: https://agentcreator-backend.onrender.com
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: MASTER_API_KEY
+        sync: false
+      - key: MASTER_API_SECRET
+        sync: false
+      - key: MASTER_ACCOUNT_SID
+        sync: false
+      - key: MASTER_AUTH_TOKEN
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+    healthCheckPath: /health 
